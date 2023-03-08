@@ -27,5 +27,5 @@ applications:
     no-route: true
     instances: 1
     disk_quota: 2G
-    memory: 200M
+    memory: 500M
     command: celery -A tasks worker --loglevel=info

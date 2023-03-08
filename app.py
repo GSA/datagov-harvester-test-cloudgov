@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request
 from tasks import validate, test_add, extract, transform, load
 from celery import Celery, chain
-import os
+import os, datetime
 import boto3
+import ssl
 
 app = Flask(__name__)
 
@@ -10,7 +11,9 @@ host = os.environ.get("REDIS_HOST")
 pwd = os.environ.get("REDIS_PASSWORD")
 port = os.environ.get("REDIS_PORT")
 
-celery_app = Celery('tasks', broker=f'redis://:{pwd}@{host}:{port}/0', backend=f'redis://:{pwd}@{host}:{port}/0')
+celery_app = Celery('tasks', broker=f'rediss://:{pwd}@{host}:{port}/0', backend=f'rediss://:{pwd}@{host}:{port}/0',
+                        broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+                        redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE})
 
 @app.route('/')
 def index():
@@ -22,15 +25,26 @@ def test_s3():
     id = os.environ.get("AWS_ACCESS_KEY_ID")
     key = os.environ.get("AWS_SECRET_ACCESS_KEY")
     region = os.environ.get("AWS_DEFAULT_REGION")
-    bucket_name = os.environ.get("BUCKET_NAME")
+    S3_BUCKET = os.environ.get("BUCKET_NAME")
+
 
     s3 = boto3.client('s3', 
                         aws_access_key_id=id, 
                         aws_secret_access_key=key, 
                         region_name=region
                         )
+    
+    # FILE_NAME = "test.txt"
+    # text_to_upload = 'file with the content...\n'
+    # text_to_upload += str(datetime.datetime.now())
+    # with open(FILE_NAME, 'w') as f:
+    #     f.write(text_to_upload)
 
-    s3.put_object(Bucket=bucket_name, Key='mytest.txt', Body='test s3 content here')
+    # with open(FILE_NAME, "rb") as f:
+    #     s3.put_object(Body=f, Bucket=S3_BUCKET, Key=FILE_NAME) #, ContentMD5=md5)
+
+
+    s3.put_object(Bucket=S3_BUCKET, Key='mytest.txt', Body='test s3 content here')
     return render_template('result.html', message='saved to S3')
 
 
@@ -38,8 +52,11 @@ def test_s3():
 def submit():
     if request.method == 'POST':
         input_data = request.form['input-data']
+        print(input_data)
         try:
+            print('before calling...')
             validate.delay(input_data).get(timeout=1)
+            print('after calling...')
             # result = etl_chain(input_data)
             result = chain(extract.s(input_data), validate.s(), transform.s(), load.s()).apply_async()
         except ValueError as e:

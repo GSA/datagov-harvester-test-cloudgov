@@ -3,6 +3,7 @@ from time import sleep
 import boto3
 import datetime, os
 from celery.utils.log import get_task_logger
+import ssl
 
 logger = get_task_logger(__name__)
 
@@ -21,7 +22,9 @@ s3 = boto3.client('s3',
                       region_name=region
                       )
 
-celery = Celery('tasks', broker=f'redis://:{pwd}@{host}:{port}/0', backend=f'redis://:{pwd}@{host}:{port}/0')
+celery = Celery('tasks', broker=f'rediss://:{pwd}@{host}:{port}/0', backend=f'rediss://:{pwd}@{host}:{port}/0',
+                        broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+                        redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE})
 
 
 @celery.task
