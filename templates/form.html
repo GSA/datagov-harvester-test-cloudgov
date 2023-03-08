@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>ETL Pipeline Form</title>
+  </head>
+  <body>
+    <h1>ETL Pipeline Form</h1>
+    <form method="post" action="{{ url_for('submit') }}">
+      <label for="input-data">Enter input data:</label>
+      <input type="text" name="input-data" id="input-data" value="{{ request.form.get('input-data', '') }}">
+      <button type="submit">Submit</button>
+    </form>
+    <br>
+    {% if message %}
+      <div> {{ message }} </div>
+    {% endif %}
+  </body>
+</html>

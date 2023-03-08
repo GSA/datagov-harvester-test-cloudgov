@@ -1,0 +1,31 @@
+---
+# To apply this manifest: cf push --vars-file vars.yml
+applications:
+  - name: ((app_name))-web
+    buildpacks:
+      - https://github.com/cloudfoundry/python-buildpack.git#v1.7.58 #to fix transitive dep issue: https://github.com/cloudfoundry/python-buildpack/issues/574
+    services:
+      - ((app_name))-redis
+      - ((app_name))-s3
+    routes:
+      - route: etl-test.app.cloud.gov
+    health-check-type: http
+    health-check-http-endpoint: /
+    health-check-invocation-timeout: 60
+    instances: 1
+    disk_quota: 2G
+    memory: 200M
+    command: flask --app app run -h 0.0.0.0 -p $PORT
+
+  - name: ((app_name))-celery
+    buildpacks:
+      - https://github.com/cloudfoundry/python-buildpack.git#v1.7.58  #to fix transitive dep issue: https://github.com/cloudfoundry/python-buildpack/issues/574
+    services:
+      - ((app_name))-redis
+      - ((app_name))-s3
+    health-check-type: process
+    no-route: true
+    instances: 1
+    disk_quota: 2G
+    memory: 200M
+    command: celery -A tasks worker --loglevel=info
